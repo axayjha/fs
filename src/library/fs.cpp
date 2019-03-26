@@ -68,19 +68,53 @@ void FileSystem::debug(Disk *disk) {
 bool FileSystem::format(Disk *disk) {
 
     // check if disk is mounted
-    if (disk->mounted())
+     if (disk->mounted())
         return false;
 
     int block_index = 0;
 
-
-
-
     // Write superblock
+    Block block;
+    block.Super.MagicNumber = MAGIC_NUMBER;
+    block.Super.Blocks = disk->size();
+    block.Super.InodeBlocks = std::ceil(block.Super.Blocks * 0.10);
+    block.Super.Inodes = block.Super.InodeBlocks * INODES_PER_BLOCK;
+    disk->write(block_index, block.Data);
+    block_index++;
 
+    /* Check this by manually running test for outputs ^^^^^^^^^^^^^^^^^^^^^^*/
+    //loop through inodeblocks and write to each
+    for (uint32_t i = block_index; i <= block.Super.InodeBlocks; i++) {
+        //Clear inodes in inode block
+        for (uint32_t j = 0; j < INODES_PER_BLOCK; j++) {
+            block.Inodes[j].Valid = 0;
+            block.Inodes[j].Size = 0;
+            for (uint32_t k = 0; k < POINTERS_PER_INODE; k++) {
+                block.Inodes[j].Direct[k] = 0;
+            }
+            block.Inodes[j].Indirect = 0;
+        }
+        disk->write(block_index, block.Data);
+        block_index++;
+    }
+    //Clear pointers within indirect block
+    for (uint32_t i = 0; i < POINTERS_PER_BLOCK; i++) {
+        block.Pointers[i] = 0;
+    }
+    disk->write(block_index, block.Data);
+    block_index++;
+
+    //Clear blocks in data block
+    for (uint32_t i = 0; i < Disk::BLOCK_SIZE; i++) {
+        block.Data[i] = 0;
+    }
+
+    //Write to the remaining data blocks
+    for (uint32_t i = block_index; i < disk->size(); i++) {
+        disk->write(block_index, block.Data);
+        block_index++;
+    }
     
-
-    // Clear all other blocks
     return true;
 }
 
