@@ -2,9 +2,10 @@
 
 #pragma once
 
-#include "sfs/disk.h"
+#include "afs/disk.h"
 
 #include <sys/types.h>
+#include <map>
 
 #include <stdint.h>
 
@@ -38,6 +39,9 @@ private:
     };
 
     // TODO: Internal helper functions
+    Disk *Device = NULL;
+    std::map<int, int> free_block_bitmap;
+    SuperBlock super_block;
 
     // TODO: Internal member variables
 

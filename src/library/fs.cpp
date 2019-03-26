@@ -1,6 +1,6 @@
 // fs.cpp: File System
 
-#include "sfs/fs.h"
+#include "afs/fs.h"
 
 #include <algorithm>
 #include <sys/types.h>
@@ -114,20 +114,68 @@ bool FileSystem::format(Disk *disk) {
         disk->write(block_index, block.Data);
         block_index++;
     }
-    
+
     return true;
 }
 
 // Mount file system -----------------------------------------------------------
 
 bool FileSystem::mount(Disk *disk) {
+
+    // make sure no device is mounted
+    if (Device)
+        return false;
+
+    // make sure no disk is mountedd
+    if (disk->mounted())
+        return false;
+
     // Read superblock
+    Block block;
+    disk->read(0, block.Data);
+
+    // check if disk has valid superblock metadata
+    if (block.Super.MagicNumber != MAGIC_NUMBER)    // check magic number
+        return false;
+    if (block.Super.Blocks != disk->size())     // check blocks
+        return false;
+    if (block.Super.InodeBlocks != std::ceil(block.Super.Blocks * 0.10))  //  Check 10%
+        return false;
+    if (block.Super.Inodes != block.Super.InodeBlocks * INODES_PER_BLOCK)  //  Check Inodes
+        return false;
 
     // Set device and mount
+    Device = disk;
+    Device->mount();
 
     // Copy metadata
+    super_block = block.Super;
 
     // Allocate free block bitmap
+
+    //go through and read the blocks and store the whether it is allocated in free block bitmap
+    for (uint32_t i = 1; i <= block.Super.InodeBlocks; i++) {  //  Loop through inode blocks.
+        disk->read(i, block.Data);
+        for (uint32_t j = 0; j < INODES_PER_BLOCK; j++) {      //  Loop through inodes in each block.
+            Inode inode = block.Inodes[j];
+            if (inode.Valid) {
+                for (uint32_t k = 0; k < POINTERS_PER_INODE; k++) { 
+                    if (inode.Direct[k]) {
+                        free_block_bitmap.emplace(inode.Direct[k], 1); //1 for allocated
+                    }
+                }
+                if (inode.Indirect) { 
+                    free_block_bitmap.emplace(inode.Indirect, 1);
+                    Block Indirect_block;
+                    disk->read(inode.Indirect, Indirect_block.Data);
+                    for (uint32_t l = 0; l < POINTERS_PER_BLOCK; l++) { // Loop throught pointers from indirect block
+                        if (Indirect_block.Pointers[l])
+                            free_block_bitmap.emplace(Indirect_block.Pointers[l], 1);
+                    }
+                } 
+            }
+        }
+    }
 
     return true;
 }
@@ -136,9 +184,18 @@ bool FileSystem::mount(Disk *disk) {
 
 ssize_t FileSystem::create() {
     // Locate free inode in inode table
-
-    // Record inode if found
-    return 0;
+    Block block;
+    for (uint32_t i = 1; i <= super_block.InodeBlocks; i++) {  //  Loop through inode blocks.
+        Device->read(i, block.Data);
+        for (uint32_t j = 0; j < INODES_PER_BLOCK; j++) {      //  Loop through inodes in each block.
+            if (!block.Inodes[j].Valid) {
+                block.Inodes[j].Valid = 1;
+                Device->write(i, block.Data);
+                return ((i - 1) * INODES_PER_BLOCK) + j; //return the exact block inumber
+            }
+        }
+    }
+    return -1;
 }
 
 // Remove inode ----------------------------------------------------------------
