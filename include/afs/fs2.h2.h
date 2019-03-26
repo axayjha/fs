@@ -4,6 +4,9 @@
 
 #include "afs/disk.h"
 
+#include <sys/types.h>
+#include <map>
+
 #include <stdint.h>
 
 class FileSystem {
@@ -36,33 +39,22 @@ private:
     };
 
     // TODO: Internal helper functions
-    int    load_inode_block(size_t inumber, bool already_loaded=true);
-    int    save_inode_block(size_t inumber);
-    size_t  find_free();
-    int    get_data_addrs(size_t inumber, int* tmp_array);
+    Disk *Device = NULL;
+    std::map<int, int> free_block_bitmap;
+    SuperBlock super_block;
+
     // TODO: Internal member variables
-    int* FS_Bitmap;
-    int current_inode_block = 0;
-    Disk* FS_Disk;
-    Block FS_Inode_Block;
-    Block FS_Data_Block;
-    uint32_t FS_Blocks;    // Number of blocks in file system
-    uint32_t FS_InodeBlocks;   // Number of blocks reserved for inodes
-    uint32_t FS_Inodes;    // Number of inodes in file system
+
 public:
     static void debug(Disk *disk);
     static bool format(Disk *disk);
 
-
-    void print_block_list();
-
     bool mount(Disk *disk);
 
-    size_t create();
+    ssize_t create();
     bool    remove(size_t inumber);
-    size_t stat(size_t inumber);
+    ssize_t stat(size_t inumber);
 
-    size_t read(size_t inumber, char *data, size_t length, size_t offset);
-    size_t write(size_t inumber, char *data, size_t length, size_t offset);
+    ssize_t read(size_t inumber, char *data, size_t length, size_t offset);
+    ssize_t write(size_t inumber, char *data, size_t length, size_t offset);
 };
-

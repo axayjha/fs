@@ -257,8 +257,9 @@ bool copyin(FileSystem &fs, const char *path, size_t inumber) {
 
     char buffer[4*BUFSIZ] = {0};
     size_t offset = 0;
+    ssize_t result;
     while (true) {
-    	ssize_t result = fread(buffer, 1, sizeof(buffer), stream);
+    	result = fread(buffer, 1, sizeof(buffer), stream);
     	if (result <= 0) {
     	    break;
 	}
@@ -270,7 +271,8 @@ bool copyin(FileSystem &fs, const char *path, size_t inumber) {
 	}
 	offset += actual;
 	if (actual != result) {
-	    fprintf(stderr, "fs.write only wrote %ld bytes, not %ld bytes\n", actual, result);
+
+	    fprintf(stderr, "fs.write only wrote %ld bytes, not %ld bytes and offset %ld\n", actual, result, offset);
 	    break;
 	}
     }
