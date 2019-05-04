@@ -110,7 +110,10 @@ void FileSystem::debug(Disk *disk) {
 
     printf("SuperBlock:\n");
     if (block.Super.MagicNumber == MAGIC_NUMBER) {
-	printf("    magic number is valid\n");
+	    printf("    magic number is valid\n");
+    } 
+    else {
+        printf("    magic number is invalid\n");
     }
     printf("    %u blocks\n"         , block.Super.Blocks);
     printf("    %u inode blocks\n"   , block.Super.InodeBlocks);
@@ -122,21 +125,20 @@ void FileSystem::debug(Disk *disk) {
     Block inode_block, pointer_block;
     bool need_indirect = true;
     // For Each Inode Block
-    for(uint32_t k = 1 ; k <= block.Super.InodeBlocks; k++){
+    for (uint32_t k = 1; k <= block.Super.InodeBlocks; k++) {
         disk->read(k, inode_block.Data);
 
         // For each Inode 
-        for(uint32_t i = 0 ; i < INODES_PER_BLOCK; i++){
-            if(inode_block.Inodes[i].Valid){
+        for (uint32_t i = 0; i < INODES_PER_BLOCK; i++) {
+            if (inode_block.Inodes[i].Valid){
 
-                printf("Inode %d:\n"              , i*k);
+                printf("Inode %d:\n", i*k);
                 printf("    size: %u bytes\n" , inode_block.Inodes[i].Size);
 
                 // For each of the pointers in the inode
                 printf("    direct blocks:");
-                for(uint32_t j = 0; j < POINTERS_PER_INODE; j++){
-
-                    if(inode_block.Inodes[i].Direct[j]){
+                for (uint32_t j = 0; j < POINTERS_PER_INODE; j++) {
+                    if (inode_block.Inodes[i].Direct[j]) {
                         //if(j != 0) printf(" ");
                         printf(" %u",inode_block.Inodes[i].Direct[j]);
                     }
@@ -153,7 +155,7 @@ void FileSystem::debug(Disk *disk) {
                     printf("    indirect block: %u\n", indirect_addr);
                     disk->read(indirect_addr, pointer_block.Data);
 
-		    printf("    indirect data blocks:");
+		            printf("    indirect data blocks:");
                     for(int j = 0; j < POINTERS_PER_BLOCK; j++){
                         if(pointer_block.Pointers[j] != 0){
                             //if(j != 0) printf(" ");

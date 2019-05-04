@@ -40,6 +40,7 @@ private:
     int    save_inode_block(size_t inumber);
     size_t  find_free();
     int    get_data_addrs(size_t inumber, int* tmp_array);
+    
     // TODO: Internal member variables
     int* FS_Bitmap;
     int current_inode_block = 0;
